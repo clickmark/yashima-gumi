@@ -883,6 +883,15 @@ class Smush {
 			}
 		}
 
+		// Reset the lossless images count in case of pending images for resmush ( Nextgen only ).
+		if (
+			'nextgen' === this.smush_type  &&
+			wp_smushit_data.resmush.length > 0 && 
+			(this.smushed + this.errors.length <= 1)
+		) {
+			wp_smushit_data.count_images -= (wp_smushit_data.resmush.length + 1);
+		}
+
 		// No more images left. Show bulk wrapper and Smush notice.
 		if ( 0 === this.ids.length ) {
 			// Sync stats for bulk Smush media library ( skip for Nextgen ).
@@ -982,7 +991,7 @@ class Smush {
 			return this.deferred;
 		}
 
-		let nonceValue = '';
+		let nonceValue = window.wp_smush_msgs.nonce;
 		// Remove from array while processing so we can continue where left off.
 		this.current_id = this.is_bulk
 			? this.ids.shift()
@@ -992,7 +1001,7 @@ class Smush {
 		Smush.updateSmushIds( this.current_id );
 
 		const nonceField = this.button.parent().find( '#_wp_smush_nonce' );
-		if ( nonceField ) {
+		if ( nonceField.length > 0 ) {
 			nonceValue = nonceField.val();
 		}
 
@@ -1026,16 +1035,9 @@ class Smush {
 
 					self.log.show();
 
-					if ( self.errors.length > 5 ) {
-						jQuery( '.smush-bulk-errors-actions' ).removeClass(
-							'sui-hidden'
-						);
-					} else {
-						// Print the error on screen.
-						self.log
-							.find( '.smush-bulk-errors' )
-							.append( errorMsg );
-					}
+					// Print the error on screen.
+					self.log.find( '.smush-bulk-errors' ).append( errorMsg );
+					jQuery( '.smush-bulk-errors-actions' ).removeClass( 'sui-hidden' );
 				} else if (
 					'undefined' !== typeof res.success &&
 					res.success
@@ -1132,7 +1134,7 @@ class Smush {
 			tableDiv =
 				tableDiv +
 				'<div class="smush-bulk-image-actions">' +
-				'<button type="button" class="sui-button-icon sui-tooltip sui-tooltip-constrained sui-tooltip-top-right smush-ignore-image" data-tooltip="' +
+				'<button type="button" class="sui-button-icon sui-tooltip sui-tooltip-constrained sui-tooltip-left smush-ignore-image" data-tooltip="' +
 				window.wp_smush_msgs.error_ignore +
 				'" data-id="' +
 				id +

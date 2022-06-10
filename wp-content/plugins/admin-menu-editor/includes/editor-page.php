@@ -2,7 +2,7 @@
 /**
  * @var array $editor_data Various pieces of data passed by the plugin.
  */
-$current_user = wp_get_current_user();
+$ame_current_user = wp_get_current_user();
 $images_url = $editor_data['images_url'];
 $is_pro_version = apply_filters('admin_menu_editor_is_pro', false);
 $is_second_toolbar_visible = isset($_COOKIE['ame-show-second-toolbar']) && (intval($_COOKIE['ame-show-second-toolbar']) === 1);
@@ -29,8 +29,130 @@ foreach($icons as $name => $url) {
 }
 $icons = apply_filters('admin_menu_editor-toolbar_icons', $icons, $images_url);
 
-$hide_button_extra_tooltip = 'When "All" is selected, this will hide the menu from everyone except the current user'
-	. ($is_multisite ? ' and Super Admin' : '') . '.';
+$toolbarButtons = new ameOrderedMap();
+$toolbarButtons->addAll(array(
+	'cut'           => array(
+		'title' => 'Cut',
+	),
+	'copy'          => array(
+		'title' => 'Copy',
+	),
+	'paste'         => array(
+		'title' => 'Paste',
+	),
+	'separator-1'   => null,
+	'new-menu'      => array(
+		'title' => 'New menu',
+		'iconName' => 'new',
+	),
+	'new-separator' => array(
+		'title' => 'New separator',
+		'topLevelOnly' => !$is_pro_version,
+	),
+	'delete'        => array(
+		'title' => 'Delete menu',
+		'class' => array('ws_delete_menu_button'),
+	),
+	'separator-2'   => null,
+));
+
+if ( !$is_pro_version ) {
+	ame_register_sort_buttons($toolbarButtons);
+}
+
+if ( $editor_data['show_deprecated_hide_button'] ) {
+	$toolbarButtons->insertBefore(
+		'delete',
+		'hide',
+		array(
+			'title' => 'Hide without preventing access (cosmetic)',
+			'alt'   => 'Hide (cosmetic)',
+		)
+	);
+}
+
+$secondToolbarRow = new ameOrderedMap();
+if ( $is_pro_version ) {
+	//In the Pro version, the sort buttons are on the second row.
+	ame_register_sort_buttons($secondToolbarRow);
+}
+
+$secondToolbarRowClasses = array('ws_second_toolbar_row');
+if ( !$is_second_toolbar_visible ) {
+	$secondToolbarRowClasses[] = 'hidden';
+}
+
+do_action('admin_menu_editor-register_toolbar_buttons', $toolbarButtons, $secondToolbarRow, $icons);
+
+if ( count($secondToolbarRow) > 0 ) {
+	$toolbarButtons->set(
+		'toggle-toolbar',
+		array(
+			'title' => 'Toggle second toolbar',
+			'alt'   => 'Toolbar toggle',
+			'class' => array('ws_toggle_toolbar_button'),
+			'topLevelOnly' => true,
+		)
+	);
+}
+
+/**
+ * @param ameOrderedMap $buttons
+ * @param array $icons
+ * @param array $classes CSS classes to add to the toolbar row.
+ */
+function ame_output_toolbar_row($buttons, $icons, $classes = array()) {
+	$classes = array_merge(array('ws_button_container'), $classes);
+	printf('<div class="%s">', esc_attr(implode(' ', $classes)));
+
+	foreach ($buttons as $key => $settings) {
+		if ( $settings === null ) {
+			echo '<div class="ws_separator">&nbsp;</div>';
+			continue;
+		}
+
+		if ( !isset($settings['title']) ) {
+			$settings['title'] = $key;
+		}
+		$action = isset($settings['action']) ? $settings['action'] : $key;
+
+		$buttonClasses = array('ws_button');
+		if ( !empty($settings['class']) ) {
+			$buttonClasses = array_merge($buttonClasses, $settings['class']);
+		}
+
+		$attributes = array(
+			'data-ame-button-action' => $action,
+			'class'                  => implode(' ', $buttonClasses),
+			'href'                   => '#',
+			'title'                  => $settings['title'],
+		);
+		if ( isset($settings['attributes']) ) {
+			$attributes = array_merge($attributes, $settings['attributes']);
+		}
+
+		$iconName = isset($settings['iconName']) ? $settings['iconName'] : $key;
+		$icon = '';
+		if ( isset($icons[$iconName]) ) {
+			$icon = sprintf(
+				'<img src="%s" alt="%s">',
+				esc_attr($icons[$iconName]),
+				esc_attr(isset($settings['alt']) ? $settings['alt'] : $settings['title'])
+			);
+		}
+
+		$pairs = array();
+		foreach ($attributes as $name => $value) {
+			$pairs[] = $name . '="' . esc_attr($value) . '"';
+		}
+
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Attribute $pairs and $icon attributes were escaped with esc_attr() above.
+		printf('<a %s>%s</a>' . "\n", implode(' ', $pairs), $icon);
+	}
+
+	echo '<div class="clear"></div>' . "\n";
+	echo '</div>';
+}
 
 //Output the "Upgrade to Pro" message
 if ( !apply_filters('admin_menu_editor_is_pro', false) ){
@@ -53,10 +175,9 @@ if ( !apply_filters('admin_menu_editor_is_pro', false) ){
 <?php do_action('admin_menu_editor-display_header'); ?>
 
 <?php
-if ( !empty($_GET['message']) ){
-	if ( intval($_GET['message']) == 2 ) {
-		echo '<div id="message" class="error"><p><strong>Failed to decode input! The menu wasn\'t modified.</strong></p></div>';
-	}
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Don't need that here, just showing a notice.
+if ( !empty($_GET['message']) && (intval($_GET['message']) == 2) ){
+	echo '<div id="message" class="error"><p><strong>Failed to decode input! The menu wasn\'t modified.</strong></p></div>';
 }
 
 include dirname(__FILE__) . '/../modules/access-editor/access-editor-template.php';
@@ -66,15 +187,26 @@ if ( $is_pro_version ) {
 	include $extrasDirectory . '/copy-permissions-dialog.php';
 }
 
-function ame_output_sort_buttons($icons) {
-	?>
-	<a class='ws_button ws_sort_menus_button' data-sort-direction="asc" href='javascript:void(0)' title='Sort ascending'>
-		<img src='<?php echo $icons['sort-ascending']; ?>' alt="Sort ascending" />
-	</a>
-	<a class='ws_button ws_sort_menus_button' data-sort-direction="desc" href='javascript:void(0)' title='Sort descending'>
-		<img src='<?php echo $icons['sort-descending']; ?>' alt="Sort descending" />
-	</a>
-	<?php
+/**
+ * @param ameOrderedMap $toolbar
+ */
+function ame_register_sort_buttons($toolbar) {
+	$toolbar->addAll(array(
+		'sort-ascending'  => array(
+			'title'      => 'Sort ascending',
+			'action'     => 'sort',
+			'attributes' => array(
+				'data-sort-direction' => 'asc',
+			),
+		),
+		'sort-descending' => array(
+			'title'      => 'Sort descending',
+			'action'     => 'sort',
+			'attributes' => array(
+				'data-sort-direction' => 'desc',
+			),
+		),
+	));
 }
 
 ?>
@@ -93,64 +225,10 @@ function ame_output_sort_buttons($icons) {
 
 	<div class='ws_main_container'>
 		<div class='ws_toolbar'>
-			<div class="ws_button_container">
-				<a id='ws_cut_menu' class='ws_button' href='javascript:void(0)' title='Cut'><img src='<?php echo $icons['cut']; ?>' alt="Cut" /></a>
-				<a id='ws_copy_menu' class='ws_button' href='javascript:void(0)' title='Copy'><img src='<?php echo $icons['copy']; ?>' alt="Copy" /></a>
-				<a id='ws_paste_menu' class='ws_button' href='javascript:void(0)' title='Paste'><img src='<?php echo $icons['paste']; ?>' alt="Paste" /></a>
-
-				<div class="ws_separator">&nbsp;</div>
-
-				<a id='ws_new_menu' class='ws_button' href='javascript:void(0)' title='New menu'><img src='<?php echo $icons['new']; ?>' alt="New menu" /></a>
-				<a id='ws_new_separator' class='ws_button' href='javascript:void(0)' title='New separator'><img src='<?php echo $icons['new-separator']; ?>' alt="New separator" /></a>
-				<?php if ( $is_pro_version ): ?>
-					<a id='ws_new_heading' class='ws_button' href='javascript:void(0)' title='New heading'><img src='<?php echo $icons['new-heading']; ?>' alt="New heading" /></a>
-				<?php endif; ?>
-
-				<?php if ( $is_pro_version ): ?>
-					<div class="ws_separator">&nbsp;</div>
-
-					<a id='ws_hide_and_deny_menu' class='ws_button ws_hide_and_deny_button' href='javascript:void(0)'
-					   title='Hide and prevent access. &#10;<?php echo esc_attr($hide_button_extra_tooltip); ?>'>
-						<img src='<?php echo $icons['hide-and-deny']; ?>' alt="Hide" />
-					</a>
-				<?php endif; ?>
-
-				<?php if ( $editor_data['show_deprecated_hide_button'] ): ?>
-					<a id='ws_hide_menu' class='ws_button' href='javascript:void(0)' title='Hide without preventing access (cosmetic)'><img src='<?php echo $icons['hide']; ?>' alt="Hide (cosmetic)" /></a>
-				<?php endif; ?>
-
-				<a id='ws_delete_menu' class='ws_button ws_delete_menu_button' href='javascript:void(0)' title='Delete menu'><img src='<?php echo $icons['delete']; ?>' alt="Delete menu" /></a>
-
-				<div class="ws_separator">&nbsp;</div>
-
-				<?php
-				if ( !$is_pro_version ) {
-					ame_output_sort_buttons($icons);
-				}
-				?>
-
-				<?php if ( $is_pro_version ): ?>
-					<a id='ws_toggle_toolbar' class='ws_button' href='javascript:void(0)' title='Toggle second toolbar'>
-						<img src='<?php echo $icons['toggle-toolbar']; ?>' alt="Toolbar toggle" />
-					</a>
-				<?php endif; ?>
-
-				<div class="clear"></div>
-			</div>
-
-			<div class="ws_button_container ws_second_toolbar_row <?php
-					if (!$is_second_toolbar_visible) { echo ' hidden'; }
-				?>">
-
-				<?php
-				if ( $is_pro_version ) {
-					ame_output_sort_buttons($icons);
-				}
-				?>
-
-				<?php do_action('admin_menu_editor-toolbar_row_2', $icons); ?>
-				<div class="clear"></div>
-			</div>
+			<?php
+			ame_output_toolbar_row($toolbarButtons, $icons);
+			ame_output_toolbar_row($secondToolbarRow, $icons, $secondToolbarRowClasses);
+			?>
 		</div>
 
 		<div id='ws_menu_box' class="ws_box">
@@ -159,58 +237,24 @@ function ame_output_sort_buttons($icons) {
 		<?php do_action('admin_menu_editor-container', 'menu'); ?>
 	</div>
 
-	<div class='ws_main_container'>
+	<div class='ws_main_container' id="ame-submenu-column-template" style="display: none;">
 		<div class='ws_toolbar'>
-			<div class="ws_button_container">
-				<a id='ws_cut_item' class='ws_button' href='javascript:void(0)' title='Cut'><img src='<?php echo $icons['cut']; ?>' alt="Cut" /></a>
-				<a id='ws_copy_item' class='ws_button' href='javascript:void(0)' title='Copy'><img src='<?php echo $icons['copy']; ?>' alt="Copy" /></a>
-				<a id='ws_paste_item' class='ws_button' href='javascript:void(0)' title='Paste'><img src='<?php echo $icons['paste']; ?>' alt="Paste" /></a>
+			<?php
+			function ame_button_can_be_in_submenu_toolbar($settings) {
+				return empty($settings['topLevelOnly']);
+			}
 
-				<div class="ws_separator">&nbsp;</div>
+			ame_output_toolbar_row(
+				$toolbarButtons->filter('ame_button_can_be_in_submenu_toolbar'),
+				$icons
+			);
 
-				<a id='ws_new_item' class='ws_button' href='javascript:void(0)' title='New menu item'><img src='<?php echo $icons['new']; ?>' alt="New menu item" /></a>
-				<?php if ( $is_pro_version ): ?>
-					<a id='ws_new_submenu_separator' class='ws_button' href='javascript:void(0)' title='New separator'><img src='<?php echo $icons['new-separator']; ?>' alt="New separator" /></a>
-				<?php endif; ?>
-
-				<?php if ( $is_pro_version ): ?>
-					<div class="ws_separator">&nbsp;</div>
-
-					<a id='ws_hide_and_deny_item' class='ws_button ws_hide_and_deny_button' href='javascript:void(0)'
-					   title='Hide and prevent access. &#10;<?php echo esc_attr($hide_button_extra_tooltip); ?>'>
-						<img src='<?php echo $icons['hide-and-deny']; ?>' alt="Hide" />
-					</a>
-				<?php endif; ?>
-
-				<?php if ( $editor_data['show_deprecated_hide_button'] ): ?>
-					<a id='ws_hide_item' class='ws_button' href='javascript:void(0)' title='Hide without preventing access (cosmetic)'><img src='<?php echo $icons['hide']; ?>' alt="Show/Hide" /></a>
-				<?php endif; ?>
-
-				<a id='ws_delete_item' class='ws_button ws_delete_menu_button' href='javascript:void(0)' title='Delete menu item'><img src='<?php echo $icons['delete']; ?>' alt="Delete menu item" /></a>
-
-				<div class="ws_separator">&nbsp;</div>
-
-				<?php
-				if ( !$is_pro_version ) {
-					ame_output_sort_buttons($icons);
-				}
-				?>
-
-				<div class="clear"></div>
-			</div>
-
-			<div class="ws_button_container ws_second_toolbar_row <?php
-					if (!$is_second_toolbar_visible) { echo ' hidden'; }
-				?>">
-
-				<?php
-				if ( $is_pro_version ) {
-					ame_output_sort_buttons($icons);
-				}
-				?>
-
-				<div class="clear"></div>
-			</div>
+			ame_output_toolbar_row(
+				$secondToolbarRow->filter('ame_button_can_be_in_submenu_toolbar'),
+				$icons,
+				$secondToolbarRowClasses
+			);
+			?>
 		</div>
 
 		<div id='ws_submenu_box' class="ws_box">
@@ -222,7 +266,7 @@ function ame_output_sort_buttons($icons) {
 	<div class="ws_basic_container">
 
 		<div class="ws_main_container" id="ws_editor_sidebar">
-		<form method="post" action="<?php echo esc_attr(add_query_arg('noheader', '1', $editor_data['current_tab_url'])); ?>" id='ws_main_form' name='ws_main_form'>
+		<form method="post" action="<?php echo esc_url(add_query_arg('noheader', '1', $editor_data['current_tab_url'])); ?>" id='ws_main_form' name='ws_main_form'>
 			<?php wp_nonce_field('menu-editor-form'); ?>
 			<input type="hidden" name="action" value="save_menu">
 			<?php
@@ -237,6 +281,8 @@ function ame_output_sort_buttons($icons) {
 
 			<input type="hidden" name="expand_menu" id="ws_expand_selected_menu" value="">
 			<input type="hidden" name="expand_submenu" id="ws_expand_selected_submenu" value="">
+
+			<input type="hidden" name="deep_nesting_enabled" id="ws_is_deep_nesting_enabled" value="">
 
 			<input type="button" id='ws_save_menu' class="button-primary ws_main_button" value="Save Changes" />
 		</form>
@@ -256,7 +302,7 @@ function ame_output_sort_buttons($icons) {
 			?>
 			<input type="button"
 			       id='ws_toggle_editor_layout'
-			       value="<?php echo $compact_layout_title; ?>"
+			       value="<?php echo esc_attr($compact_layout_title); ?>"
 			       class="button ws_main_button" />
 
 			<?php
@@ -275,7 +321,7 @@ function ame_output_sort_buttons($icons) {
 			$box_class = $is_general_box_open ? '' : 'closed';
 
 			?>
-				<div class="postbox ws_ame_custom_postbox <?php echo $box_class; ?>" id="ws_ame_general_vis_box">
+				<div class="postbox ws_ame_custom_postbox <?php echo esc_attr($box_class); ?>" id="ws_ame_general_vis_box">
 					<button type="button" class="handlediv button-link">
 						<span class="toggle-indicator"></span>
 					</button>
@@ -300,11 +346,11 @@ function ame_output_sort_buttons($icons) {
 		}
 
 		/** @noinspection HtmlUnknownTarget */
-		$how_to_link_template = '<a href="' . htmlspecialchars($tutorial_base_url) . '%1$s" target="_blank" title="Opens in a new tab">%2$s</a>';
+		$how_to_link_template = '<a href="' . esc_url($tutorial_base_url) . '%1$s" target="_blank" title="Opens in a new tab">%2$s</a>';
 		$how_to_item_template = '<li>' . $how_to_link_template . '</li>';
 
 		?>
-			<div class="postbox ws_ame_custom_postbox <?php echo $box_class; ?>" id="ws_ame_how_to_box">
+			<div class="postbox ws_ame_custom_postbox <?php echo esc_attr($box_class); ?>" id="ws_ame_how_to_box">
 				<button type="button" class="handlediv button-link">
 					<span class="toggle-indicator"></span>
 				</button>
@@ -316,7 +362,12 @@ function ame_output_sort_buttons($icons) {
 							//Pro version tutorials.
 							?>
 							<li><?php
-								printf($how_to_link_template, 'how-to-hide-a-menu-item/', 'Hide a Menu...');
+								printf(
+									//phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML template contains HTML.
+									$how_to_link_template,
+									'how-to-hide-a-menu-item/',
+									'Hide a Menu...'
+								);
 								?>
 								<ul class="ame-tutorial-list">
 									<?php
@@ -329,7 +380,12 @@ function ame_output_sort_buttons($icons) {
 										)
 										as $how_to_url => $how_to_title
 									) {
-										printf($how_to_item_template, esc_attr($how_to_url), $how_to_title);
+										printf(
+											//phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML template.
+											$how_to_item_template,
+											esc_attr($how_to_url),
+											esc_html($how_to_title)
+										);
 									}
 									?>
 								</ul>
@@ -343,7 +399,12 @@ function ame_output_sort_buttons($icons) {
 								)
 								as $how_to_url => $how_to_title
 							) {
-								printf($how_to_item_template, esc_attr($how_to_url), $how_to_title);
+								printf(
+								//phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML template
+									$how_to_item_template,
+									esc_attr($how_to_url),
+									esc_html($how_to_title)
+								);
 							}
 
 						else:
@@ -356,7 +417,12 @@ function ame_output_sort_buttons($icons) {
 								)
 								as $how_to_url => $how_to_title
 							) {
-								printf($how_to_item_template, esc_attr($how_to_url), $how_to_title);
+								printf(
+								//phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML template
+									$how_to_item_template,
+									esc_attr($how_to_url),
+									esc_html($how_to_title)
+								);
 							}
 						endif;
 						?>
@@ -393,11 +459,11 @@ function ame_output_sort_buttons($icons) {
 						<li>Hide items from specific users.</li>
 						<li>Menu import and export.</li>
 						<li>Change menu colors.</li>
-						<li><?php echo $selected_variation; ?></li>
+						<li><?php echo esc_html($selected_variation); ?></li>
 					</ul>
-					<a href="<?php echo esc_attr($pro_version_link); ?>" target="_blank">Learn more</a>
+					<a href="<?php echo esc_url($pro_version_link); ?>" target="_blank">Learn more</a>
 					|
-					<a href="http://amedemo.com/" target="_blank">Try online demo</a>
+					<a href="https://amedemo.com/" target="_blank">Try online demo</a>
 				</div>
 			</div>
 		<?php
@@ -425,7 +491,7 @@ function ame_output_sort_buttons($icons) {
  		$capSelector[] = sprintf(
 		 	'<option value="%s">%s</option>',
 		 	esc_attr($role_id),
-		 	$role_name
+		 	esc_html($role_name)
 	 	);
  	}
  	$capSelector[] = '</optgroup>';
@@ -435,12 +501,13 @@ function ame_output_sort_buttons($icons) {
  		$capSelector[] = sprintf(
 		 	'<option value="%s">%s</option>',
 		 	esc_attr($cap),
-		 	$cap
+		 	esc_html($cap)
 	 	);
  	}
  	$capSelector[] = '</optgroup>';
  	$capSelector[] = '</select>';
 
+	 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Generated HTML, should be escaped above.
  	echo implode("\n", $capSelector);
 ?>
 
@@ -454,15 +521,15 @@ function ame_output_sort_buttons($icons) {
 			'admin_menu_editor-icon_selector_tabs',
 			array('ws_core_icons_tab' => 'Dashicons')
 		);
-		foreach($iconSelectorTabs as $id => $caption) {
-			printf('<li><a href="#%s">%s</a></li>', esc_attr($id), $caption);
+		foreach($iconSelectorTabs as $tabId => $caption) {
+			printf('<li><a href="#%s">%s</a></li>', esc_attr($tabId), esc_html($caption));
 		}
 		?>
 	</ul>
 
 	<?php
 	//Let the user select a custom icon via the media uploader.
-	//We only support the new WP 3.5+ media API. Hence the function_exists() check.
+	//We only support the new WP 3.5+ media API. Hence, the function_exists() check.
 	if ( function_exists('wp_enqueue_media') ):
 		?>
 		<input type="button" class="button"
@@ -494,7 +561,7 @@ function ame_output_sort_buttons($icons) {
 					<div class="ws_icon_image icon16 icon-%2$s"><br></div>
 				</div>',
 				esc_attr(ucwords($icon)),
-				$icon
+				esc_attr($icon)
 			);
 		}
 	}
@@ -577,7 +644,7 @@ function ame_output_sort_buttons($icons) {
 
 	?>
 	<div class="ws_icon_option ws_custom_image_icon" title="Custom image" style="display: none;">
-		<img src="<?php echo esc_attr(admin_url('images/loading.gif')); ?>">
+		<img src="<?php echo esc_url(admin_url('images/loading.gif')); ?>" alt="Loading indicator">
 	</div>
 
 		<div class="clear"></div>
@@ -645,7 +712,7 @@ function ame_output_sort_buttons($icons) {
 		<?php
 		submit_button('Hide it from all users', 'secondary', 'ws_hide_menu_from_everyone', false);
 		submit_button(
-			sprintf('Hide it from everyone except "%s"', $current_user->get('user_login')),
+			sprintf('Hide it from everyone except "%s"', $ame_current_user->get('user_login')),
 			'secondary',
 			'ws_hide_menu_except_current_user',
 			false
@@ -674,6 +741,12 @@ if ( $is_pro_version ) {
 
 <!--suppress JSUnusedLocalSymbols These variables are actually used by menu-editor.js -->
 <script type='text/javascript'>
-var defaultMenu = <?php echo $editor_data['default_menu_js']; ?>;
-var customMenu = <?php echo $editor_data['custom_menu_js']; ?>;
+	var defaultMenu = <?php
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Should be JSON.
+		echo $editor_data['default_menu_js'];
+		?>;
+	var customMenu = <?php
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Should also be JSON.
+		echo $editor_data['custom_menu_js'];
+		?>;
 </script>

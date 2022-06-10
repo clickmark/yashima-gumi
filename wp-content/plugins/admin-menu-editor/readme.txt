@@ -2,14 +2,14 @@
 Contributors: whiteshadow
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A6P9S6CE3SRSW
 Tags: admin, dashboard, menu, security, wpmu
-Requires at least: 4.1
-Tested up to: 5.7
-Stable tag: 1.9.10
+Requires at least: 4.7
+Tested up to: 6.0
+Stable tag: 1.10.2
 
 Lets you edit the WordPress admin menu. You can re-order, hide or rename menus, add custom menus and more. 
 
 == Description ==
-Admin Menu Editor lets you manually edit the Dashboard menu. You can reorder the menus, show/hide specific items, change premissions, and more.
+Admin Menu Editor lets you manually edit the Dashboard menu. You can reorder the menus, show/hide specific items, change permissions, and more.
 
 **Features**
 
@@ -19,8 +19,20 @@ Admin Menu Editor lets you manually edit the Dashboard menu. You can reorder the
 * Move a menu item to a different submenu. 
 * Create custom menus that point to any part of the Dashboard or an external URL.
 * Hide/show any menu or menu item. A hidden menu is invisible to all users, including administrators.
+* Create login redirects and logout redirects.
 
 The [Pro version](http://w-shadow.com/AdminMenuEditor/) lets you set per-role menu permissions, hide a menu from everyone except a specific user, export your admin menu, drag items between menu levels, make menus open in a new window and more. [Try online demo](http://amedemo.com/wpdemo/demo.php).
+
+**Shortcodes**
+
+The plugin provides a few utility shortcodes. These are mainly intended to help with creating login/logout redirects, but you can also use them in posts and pages.
+
+* `[ame-wp-admin]` - URL of the WordPress dashboard (with a trailing slash).
+* `[ame-home-url]` - Site URL. Usually, this is the same as the URL in the "Site Address" field in *Settings -> General*.
+* `[ame-user-info field="..."]` - Information about the logged-in user. Parameters:
+    * `field` - The part of user profile to display. Supported fields include: `ID`, `user_login`, `display_name`, `locale`, `user_nicename`, `user_url`, and so on.
+    * `placeholder` - Optional. Text that will be shown if the visitor is not logged in.
+    * `encoding` - Optional. How to encode or escape the output. This is useful if you want to use the shortcode in your own HTML or JS code. Supported values: `auto` (default), `html`, `attr`, `js`, `none`.
 
 **Notes**
 
@@ -62,6 +74,36 @@ Plugins installed in the `mu-plugins` directory are treated as "always on", so y
 3. Re-ordering menu items via drag and drop
 
 == Changelog ==
+
+= 1.10.2 =
+* Added additional validation in escaping in multiple places.
+* Fixed a number of issues related to the WordPress coding standard and the WordPress-VIP-Go coding standard.
+* Fixed visual misalignment of menu property fields and accompanying dropdown buttons.
+* Fixed inconsistent spacing aroud some radio buttons on the settings page.
+* Introduced a limit to how many unique menu URLs can be remembered by the "highlight new menu items" feature. Previously, when this feature was enabled, the plugin would record each "seen" menu item, which could cause the associated database entry to grow endlessly. Now the plugin will remember up to 700 items per user.
+* Tested with WordPress 6.0 (release candidate) and 6.1-alpha.
+
+= 1.10.1 =
+* Fixed the `[ame-user-info]` shortcode not working in login redirects. It would always output "(No user)" instead of the actual user data.
+* Fixed a warning caused by a conflict with plugins and themes that call the "login_redirect" filter with only 1 parameter instead of the expected 3.
+* Probably fixed a bug where menu items that use fully qualified URLs would lose their custom settings when the site URL changed (such as when migrating the site to a different domain).
+* Fixed a minor conflict with the plugin "Google Analytics for WordPress by MonsterInsights" where the "Getting Started" menu item that is usually hidden would become visible when AME was activated.
+* Fixed an edge case where the plugin would incorrectly show an "is this option enabled for everyone" checkbox in an indeterminate state when it was actually enabled for all roles but was not explicitly enabled (or disabled) for individual users.
+* Fixed a bug where AME did not prefer submenu items when detecting the current menu item based on the current URL.
+* Switched from `jQuery.toJSON()` to `JSON.stringify()`. The old jQuery JSON plugin appears to be unmaintained, and all modern browsers have supported `JSON.stringify()` for a long time.
+* Other minor fixes.
+* Tested up to WP 6.0-beta1.
+
+= 1.10 =
+* Added a "Redirects" feature. You can create login redirects, logout redirects, and registration redirects. You can configure redirects for specific roles and users. You can also set up a default redirect that will apply to everyone who doesn't have a specific setting. Redirect URLs can contain shortcodes, but not all shortcodes will work in this context.
+* Added a few utility shortcodes: `[ame-wp-admin]`, `[ame-home-url]`, `[ame-user-info field="..."]`. These are mainly intended to be used to create dynamic redirects, but they will also work in posts and pages.
+* Slightly improved the appearance of settings page tabs on small screens and in narrow browser windows.
+* Fixed a minor conflict where several hidden menu items created by "WP Grid Builder" would unexpectedly show up when AME is active.
+* Fixed a conflict with "LoftLoader Pro", "WS Form", and probably a few other plugins that create new admin menu items that link to the theme customizer. Previously, it was impossible to hide or edit those menu items.
+* Fixed a few jQuery deprecation warnings.
+* Fixed an "Undefined array key" warning that could appear if another plugin created a user role that did not have a "capabilities" key.
+* Fixed a minor BuddyBoss Platform compatibility issue where the menu editor would show a "BuddyBoss -> BuddyBoss" menu item that was not present in the actual admin menu. The item is created by BuddyBoss Platform, but it is apparently intended to be hidden.
+* Refactored the menu editor and added limited support for editing three level menus. While the free version doesn't have the ability to actually render nested items in the admin menu, it should at least load a menu configuration that includes more than two levels without crashing. This will probably only matter if someone edits the settings in the database or copies a menu configuration from the Pro version.
 
 = 1.9.10 =
 * Fixed a bug where the plugin could incorrectly identify a separator as the current menu item.

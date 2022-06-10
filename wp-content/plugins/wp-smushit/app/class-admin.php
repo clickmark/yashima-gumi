@@ -124,8 +124,8 @@ class Admin {
 		// Main JS.
 		wp_register_script( 'smush-admin', WP_SMUSH_URL . 'app/assets/js/smush-admin.min.js', array( 'jquery', 'smush-sui', 'underscore', 'wp-color-picker' ), WP_SMUSH_VERSION, true );
 
-		// Configs react script. TODO: load for that tab only.
-		wp_register_script( 'smush-react-configs', WP_SMUSH_URL . 'app/assets/js/smush-react-configs.min.js', array( 'wp-i18n', 'smush-sui' ), WP_SMUSH_VERSION, true );
+		// JS that can be used on all pages in the WP backend.
+		wp_register_script( 'smush-admin-common', WP_SMUSH_URL . 'app/assets/js/smush-admin-common.min.js', array( 'jquery' ), WP_SMUSH_VERSION, true );
 
 		if ( ! WP_Smush::is_pro() ) {
 			// Used on dashboard video widget.
@@ -146,7 +146,7 @@ class Admin {
 	 * Enqueue scripts.
 	 */
 	public function enqueue_scripts() {
-		$dismissed = get_option( WP_SMUSH_PREFIX . 'hide-conflict-notice' );
+		$dismissed = get_option( 'wp-smush-hide-conflict-notice' );
 		if ( ! $dismissed ) {
 			wp_enqueue_script( 'smush-global', WP_SMUSH_URL . 'app/assets/js/smush-global.min.js', array(), WP_SMUSH_VERSION, true );
 		}
@@ -176,18 +176,18 @@ class Admin {
 			wp_enqueue_style( 'smush-admin' );
 			wp_enqueue_script( 'smush-wpmudev-sui' );
 
-			// React scripts.
-			wp_enqueue_script( 'smush-react-configs' );
-
 			if ( ! WP_Smush::is_pro() ) {
 				// Used on dashboard video widget.
 				wp_enqueue_script( 'smush-wistia' );
 			}
 		}
 
-		// Skip these pages where the script isn't used.
 		if ( ! in_array( $current_page, array( 'post', 'post-new', 'page', 'edit-page' ), true ) ) {
+			// Skip these pages where the script isn't used.
 			wp_enqueue_script( 'smush-admin' );
+		} else {
+			// Otherwise, load only the common JS code.
+			wp_enqueue_script( 'smush-admin-common' );
 		}
 
 		// We need it on media pages and Smush pages.
@@ -231,8 +231,9 @@ class Admin {
 		$settings_page            = is_multisite() && is_network_admin() ? network_admin_url( 'admin.php?page=smush' ) : menu_page_url( 'smush', false );
 		$links['smush_dashboard'] = '<a href="' . $settings_page . '" aria-label="' . esc_attr( __( 'Go to Smush Dashboard', 'wp-smushit' ) ) . '">' . esc_html__( 'Settings', 'wp-smushit' ) . '</a>';
 
-		if ( is_network_admin() && ! is_plugin_active_for_network( WP_SMUSH_BASENAME ) ) {
-			// Remove links for network admin when plugin is not activated for network.
+		$access = get_site_option( 'wp-smush-networkwide' );
+		if ( ! is_network_admin() && is_plugin_active_for_network( WP_SMUSH_BASENAME ) && ! $access ) {
+			// Remove settings link for subsites if Subsite Controls is not set on network permissions tab.
 			unset( $links['smush_dashboard'] );
 		}
 
@@ -346,7 +347,7 @@ class Admin {
 		$content .=
 			'<p>' . __( 'Smush sends images to the WPMU DEV servers to optimize them for web use. This includes the transfer of EXIF data. The EXIF data will either be stripped or returned as it is. It is not stored on the WPMU DEV servers.', 'wp-smushit' ) . '</p>';
 		$content .=
-			'<p>' . sprintf(
+			'<p>' . sprintf( /* translators: %1$s - opening <a>, %2$s - closing </a> */
 				__( "Smush uses the Stackpath Content Delivery Network (CDN). Stackpath may store web log information of site visitors, including IPs, UA, referrer, Location and ISP info of site visitors for 7 days. Files and images served by the CDN may be stored and served from countries other than your own. Stackpath's privacy policy can be found %1\$shere%2\$s.", 'wp-smushit' ),
 				'<a href="https://www.stackpath.com/legal/privacy-statement/" target="_blank">',
 				'</a>'
@@ -407,11 +408,23 @@ class Admin {
 	 */
 	public function check_for_conflicts_cron( $deactivated = '' ) {
 		$conflicting_plugins = array(
+			'autoptimize/autoptimize.php',
 			'ewww-image-optimizer/ewww-image-optimizer.php',
 			'imagify/imagify.php',
 			'resmushit-image-optimizer/resmushit.php',
 			'shortpixel-image-optimiser/wp-shortpixel.php',
 			'tiny-compress-images/tiny-compress-images.php',
+			'wp-rocket/wp-rocket.php',
+			'optimole-wp/optimole-wp.php',
+			// lazy load plugins.
+			'rocket-lazy-load/rocket-lazy-load.php',
+			'a3-lazy-load/a3-lazy-load.php',
+			'jetpack/jetpack.php',
+			'sg-cachepress/sg-cachepress.php',
+			'w3-total-cache/w3-total-cache.php',
+			'wp-fastest-cache/wpFastestCache.php',
+			'wp-optimize/wp-optimize.php',
+			'nitropack/main.php',
 		);
 
 		$plugins = get_plugins();
@@ -434,7 +447,7 @@ class Admin {
 			$active_plugins[] = $plugins[ $plugin ]['Name'];
 		}
 
-		set_transient( WP_SMUSH_PREFIX . 'conflict_check', $active_plugins, 3600 );
+		set_transient( 'wp-smush-conflict_check', $active_plugins, 3600 );
 	}
 
 	/**
@@ -443,12 +456,17 @@ class Admin {
 	 * @since 3.6.0
 	 */
 	public function show_plugin_conflict_notice() {
-		$dismissed = get_option( WP_SMUSH_PREFIX . 'hide-conflict-notice' );
+		// Do not show on lazy load module, there we show an inline notice.
+		if ( false !== strpos( get_current_screen()->id, 'page_smush-lazy-load' ) ) {
+			return;
+		}
+
+		$dismissed = get_option( 'wp-smush-hide-conflict-notice' );
 		if ( $dismissed ) {
 			return;
 		}
 
-		$conflict_check = get_transient( WP_SMUSH_PREFIX . 'conflict_check' );
+		$conflict_check = get_transient( 'wp-smush-conflict_check' );
 
 		// Have never checked before.
 		if ( false === $conflict_check ) {
@@ -559,7 +577,7 @@ class Admin {
 			<i class="sui-icon-info sui-warning" aria-hidden="true"></i>
 		</span>
 		<p id="wp-smush-bulk-image-count-description">
-			<?php echo $image_count_description; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php echo wp_kses_post( $image_count_description ); ?>
 		</p>
 		<?php
 	}

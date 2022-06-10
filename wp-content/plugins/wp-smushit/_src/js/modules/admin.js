@@ -121,8 +121,15 @@ jQuery(function ($) {
 					Smush.updateImageStats(r.data.new_size);
 				}
 			} else if (r.data && r.data.error_msg) {
-				// Show error.
-				currentButton.parent().append(r.data.error_msg);
+				if (
+					-1 === this.data.indexOf('nextgen') &&
+					'restore' === action
+				) {
+					$('.smush-status').addClass('error').html(r.data.error_msg);
+				} else {
+					// Show error.
+					currentButton.parent().append(r.data.error_msg);
+				}
 			}
 		});
 	};
@@ -580,23 +587,6 @@ jQuery(function ($) {
 		$.post(ajaxurl, { action: 'recheck_api_status' }, function () {
 			location.reload();
 		});
-	});
-
-	/**
-	 * Handle the Smush Stats link click
-	 */
-	$('body').on('click', 'a.smush-stats-details', function (e) {
-		//If disabled
-		if ($(this).prop('disabled')) {
-			return false;
-		}
-
-		// prevent the default action
-		e.preventDefault();
-		//Replace the `+` with a `-`
-		const slide_symbol = $(this).find('.stats-toggle');
-		$(this).parents().eq(1).find('.smush-stats-wrapper').slideToggle();
-		slide_symbol.text(slide_symbol.text() == '+' ? '-' : '+');
 	});
 
 	/** Handle smush button click **/
@@ -1087,4 +1077,12 @@ jQuery(function ($) {
 			false
 		);
 	}
+
+	/**
+	 * Toggle backup notice based on "Compress uploaded images" setting.
+	 * @since 3.9.1
+	 */
+	$( 'input#original' ).on( 'change', function() {
+		$( '#backup-notice' ).toggleClass( 'sui-hidden', $( this ).is(':checked') );
+	} );
 });
