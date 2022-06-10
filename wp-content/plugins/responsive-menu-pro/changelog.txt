@@ -1,0 +1,78 @@
+<strong>v3.1.31 (15 December 2020)</strong>
+<ul>
+	<li>Enhancement: Added default height and width attributes in headerbar logo image </li>
+	<li>Bug: Fixed caching issue</li>
+	<li>Bug: Fixed w3 html validation errors</li>
+	<li>Bug: Fixed compatibility issues with wp 5.6</li>
+	<li>Bug: Fixed sliding effect menu item overlapping issues</li>
+	<li>Bug: Fixed tab indexing on menu items and elements</li>
+	<li>Bug: Fixed security issues</li>
+</ul>
+
+<strong>v3.1.30 (23 July 2020)</strong>
+<ul>
+	<li>Bug: Fixed w3 validation errors</li>
+	<li>Bug: Fixed hamburger menu flicking on very first load</li>
+	<li>Bug: Fixed page overlay issue</li>
+	<li>Bug: Fixed menu arial-label</li>
+</ul>
+
+<strong>v3.1.29 (04 May 2020)</strong>
+<ul>
+	<li>Bug: Fix fade items in options</li>
+	<li>Bug: Fix slide effect for submenu</li>
+	<li>Bug: Fix page scrolling on menu item click</li>
+	<li>Bug: Fix Menu import functionality when menu names do not match</li>
+</ul>
+
+<strong>v3.1.28 (13 April 2020)</strong>
+<ul>
+	<li>Enhancement: Added admin notice to upgrade the license</li>
+	<li>Feature: Improve keyboard accessibility</li>
+	<li>Enhancement: Improve Mega menu functionalities
+		<ul>
+			<li>Improve layout structure and overlapping issues</li>
+			<li>Added Maximum width option for Mega menu panel</li>
+			<li>Added padding options for Mega menu column</li>
+			<li>Added color options for Mega Menu panel</li>
+			<li>Fix Submenu items depth for Mega Menu</li>
+		</ul>
+	</li>
+	<li>Enancement: Improve Standard Menu type
+		<ul>
+			<li>Fix layout and contents overlapping</li>
+			<li>Added option to set the Maximum width for Submenu panel</li>
+		</ul>
+	</li>
+	<li>Feature: Added option to open Submenu on click </li>
+	<li>Feature: Added some animation effects for Menu items </li>
+	<li>Enancement: Improve the submenu item indicator for desktop menu</li>
+</ul>
+
+<strong>v3.1.27 (23 Mar 2020)</strong>
+<ul>
+ 	<li>Bug: Responsive menu is not compatible with PHP 7.4</li>
+ 	<li>Bug: Menu Spacing Broken On Version 3.1.26</li>
+ 	<li>Feature: Desktop Menu Hide on Scroll Down / Show on Scroll Up</li>
+ 	<li>Bug: W3C Compliance issues</li>
+</ul>
+<strong>v3.1.26 (19 Feb 2020)</strong>
+<ul>
+ 	<li>Bug: WordPress 5.3 - Responsive Menu pro</li>
+ 	<li>Bug: Hover trigger not working properly</li>
+ 	<li>Bug: Responsive menu is not compatible with PHP 7.4</li>
+ 	<li>Bug: Click on search input in menu automatically closes it in iOS safari</li>
+</ul>
+<strong>v3.1.25 (17 Dec 2019)</strong>
+<ul>
+ 	<li>Multiple CSS issues found in plugin
+		<ul>
+			<li>Sub Menus -&gt; Text Alignment Option does not work</li>
+			<li>Trigger Icon Position</li>
+			<li>Trigger Icon Border CSS code</li>
+			<li>Menu Text goes under Trigger Icon</li>
+		</ul>
+	</li>
+ 	<li>Different menus for mobile and desktop</li>
+ 	<li>Deactivate current active version of plugin before switching to another version</li>
+</ul>
