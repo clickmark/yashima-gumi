@@ -10,195 +10,50 @@
 
 </div><!-- /main banner -->
 
-<section class="py-4">
+<?php if( have_rows('recruitment') ): ?>
 
-	<div class="container-lg">
-	
-		<div class="text-center">
+	<?php while( have_rows('recruitment') ): the_row(); ?>
+
+    <section class="py-4">
+
+		<div class="container-lg">
+
+			<div class="text-center">
+
+				<h1 class="pb-0 mb-0"><?php echo get_sub_field('recruit_title'); ?></h1><br>
+
+			</div><!-- /text center -->
+
+			<div class="row">
+
+				<div class="col-xl-8 m-auto col-lg-9 col-12">
+
+					<table class="table mt-4">
+						
+						<?php if( have_rows('recruit_table_repeater') ): ?>
+							<?php while( have_rows('recruit_table_repeater') ): the_row(); ?>
+								<tr>
+									<td><?php echo get_sub_field('label'); ?></td>
+									<td>
+										<?php echo get_sub_field('details'); ?>
+									</td>
+								</tr>
+							<?php endwhile; ?>
+						<?php endif; ?>
+			
+					 </table>
+
+				</div><!-- /col 9 -->
+
+			</div><!-- /row -->
+
+		</div><!-- /container -->
+
+	</section>		
 		
-			<h1 class="pb-0 mb-0">土木施工管理職</h1><br>
-			
-		</div><!-- /text center -->
-			
-        <div class="row">
-
-            <div class="col-xl-8 m-auto col-lg-9 col-12">
-
-                <table class="table mt-4">
-
-                    <tr>
-                        <td>資格要件</td>
-                        <td>
-                            学歴不問<br>
-						   土木施工管理技士資格（二級以上）または現場監督を目指したい方<br>
-						   普通自動車運転免許
-                        </td>
-                    </tr>
-
-					<tr>
-                        <td>選考方法</td>
-                        <td>
-                            面接を行いますので履歴書を送付してください
-                        </td>
-                    </tr>
+	<?php endwhile; ?>
 					
-					<tr>
-                        <td>基 本 給</td>
-                        <td>
-                            月額180,000円～400,000円（経験・年齢を考慮）<br>
-							※上記のほか諸手当あり
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>手　　当</td>
-                        <td>
-                            時間外・休日手当、資格手当、通勤手当、現場手当他
-                        </td>
-                    </tr>
-				
-					<tr>
-                        <td>賞　　与</td>
-                        <td>
-                            年2回（8・12月）
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>休日・休暇</td>
-                        <td>
-                            会社カレンダーによる、夏期、GW、年末年始、慶弔等
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>勤務時間</td>
-                        <td>
-                            8：00～17：00（実働7.5時間）
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>勤務地</td>
-                        <td>
-                            兵庫県淡路市仁井2番地3
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>福利厚生</td>
-                        <td>
-                            各種社会保険（健康・厚生・雇用・労災・退職金他）<br>
-						    制服支給（夏服・冬服）<br>
-							資格取得支援（業務に必要な資格取得費用は全額会社が負担します
-                        </td>
-                    </tr>
-					
-                    </table>
-
-            </div><!-- /col 9 -->
-
-        </div><!-- /row -->
-			
-		
-	</div><!-- /container -->
-	
-</section>
-
-<section class="py-4">
-
-	<div class="container-lg">
-	
-		<div class="text-center">
-
-			<h1 class="pb-0 mb-0">土木工事現場作業</h1><br>
-			
-		</div><!-- /text center -->
-			
-        <div class="row">
-
-            <div class="col-xl-8 m-auto col-lg-9 col-12">
-
-                <table class="table mt-4">
-
-                    <tr>
-                        <td>資格要件</td>
-                        <td>
-							学歴不問（経験者であれば尚可）、未経験の方も歓迎<br>
-							普通自動車運転免許
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>選考方法</td>
-                        <td>
-                            面接を行いますので履歴書を送付してください
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>基 本 給</td>
-                        <td>
-                            日給11,000円から（経験・年齢を考慮）
-                        </td>
-                    </tr>
-
-					<tr>
-                        <td>手　　当</td>
-                        <td>
-                            時間外・休日手当、通勤手当他
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>賞　　与</td>
-                        <td>
-                            年2回（8・12月）
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>休日・休暇</td>
-                        <td>
-							会社カレンダーによる（年間休日：88日 昨年度参考日数）<br>
-							※ 夏期、GW、年末年始休暇を含む<br>
-							慶弔休暇等
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>勤務時間</td>
-                        <td>
-                            8：00～17：00（実働7.5時間）
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>勤務地</td>
-                        <td>
-                            兵庫県淡路市仁井2番地3
-                        </td>
-                    </tr>
-					
-					<tr>
-                        <td>福利厚生</td>
-                        <td>
-							各種社会保険（健康・厚生・雇用・労災・退職金他）<br>
-							制服支給（夏服・冬服）<br>
-							資格取得支援（業務に必要な資格取得費用は全額会社が負担します
-                        </td>
-                    </tr>
-					
-                </table>
-
-            </div><!-- /col 9 -->
-
-        </div><!-- /row -->
-			
-		
-	</div><!-- /container -->
-	
-</section>
+<?php endif; ?>
 
 <section class="py-5 bg-grey" id="apply">
 	
