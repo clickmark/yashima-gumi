@@ -17,22 +17,20 @@
 	
 		<div>
 		
-			<h1 class="text-yashima-primary mb-5">協力会社の皆様へ</h1>
+			<h1 class="text-yashima-primary mb-5"><?php echo get_field('title'); ?></h1>
+			
+			<p>
+				<?php echo get_field('introduction'); ?>
+			</p>
+
+			<p>
+				<a href="<?php echo get_field('button_file'); ?>" class="btn btn-outline-dark">
+					<strong><?php echo get_field('button_title'); ?></strong>
+				</a>
+			</p>
 			
 			<p>				
-				現場別請求書用紙をダウンロードして、<br>
-				御社の請求書とともに<br>
-
-				作成・提出してください。<br><br>
-
-				<a href="https://www.yashima-gumi.co.jp/wp-content/uploads/2021/07/genbabetsu-seikyusho.xlsx"><strong>ダウンロードはこちら</strong></a><br><br>
-
-
-				尚、不明な点がございましたら<br>
-
-				下記宛ご連絡下さい。<br><br>
-
-				経理部　TEL　0799-82-0600
+				<?php echo get_field('ending_text'); ?>
 			</p>
 			
 		</div>
